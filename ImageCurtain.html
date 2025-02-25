@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Curtain Effect Image Comparison</title>
+    <style>
+        body {
+            margin: 10;
+            padding: 0px 0px 0px 0px;
+            height: 100vh;
+            box-sizing: border-box;
+        }
+
+        .container {
+            position: relative;
+            width: 2520px;
+            height: 1180px;
+            border: 2px solid #333;
+            overflow: hidden;
+        }
+
+        .image-wrapper {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+
+        .bottom-image, .top-image {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .top-image {
+            clip-path: inset(0 50% 0 0);
+        }
+
+        .curtain-bar {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            width: 4px;
+            height: 100%;
+            background: #fff;
+            cursor: ew-resize;
+            transform: translateX(-50%);
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .drag-icon {
+            width: 30px;
+            height: 30px;
+            background: #fff;
+            border-radius: 50%;
+            border: 2px solid #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: ew-resize;
+        }
+
+        .upload-section {
+            text-align: center;
+            padding: 20px 0;
+        }
+
+        .error-message {
+            color: red;
+            text-align: center;
+            padding: 10px 0;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="upload-section">
+        <label>Bottom Image: <input type="file" id="bottomImageInput" accept="image/*"></label>
+        <label>Top Image: <input type="file" id="topImageInput" accept="image/*"></label>
+    </div>
+    <div class="error-message" id="errorMessage"></div>
+    <div class="container">
+        <div class="image-wrapper">
+            <img class="bottom-image" id="bottomImage" src="https://via.placeholder.com/600x400?text=Bottom+Image" alt="Bottom Image">
+            <img class="top-image" id="topImage" src="https://via.placeholder.com/600x400?text=Top+Image" alt="Top Image">
+            <div class="curtain-bar" id="curtainBar">
+                <div class="drag-icon">↔</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const container = document.querySelector('.container');
+        const topImage = document.querySelector('.top-image');
+        const curtainBar = document.getElementById('curtainBar');
+        const bottomImageInput = document.getElementById('bottomImageInput');
+        const topImageInput = document.getElementById('topImageInput');
+        const bottomImage = document.getElementById('bottomImage');
+        const errorMessage = document.getElementById('errorMessage');
+
+        let isDragging = false;
+        let currentPosition = 50;
+
+        // Dragging functionality
+        curtainBar.addEventListener('mousedown', startDragging);
+        document.addEventListener('mousemove', drag);
+        document.addEventListener('mouseup', stopDragging);
+
+        curtainBar.addEventListener('touchstart', startDragging);
+        document.addEventListener('touchmove', drag);
+        document.addEventListener('touchend', stopDragging);
+
+        function startDragging(e) {
+            isDragging = true;
+            e.preventDefault();
+        }
+
+        function drag(e) {
+            if (!isDragging) return;
+
+            const rect = container.getBoundingClientRect();
+            let clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+            let newPosition = ((clientX - rect.left) / rect.width) * 100;
+            
+            currentPosition = Math.max(0, Math.min(100, newPosition));
+            updateCurtain();
+        }
+
+        function stopDragging() {
+            isDragging = false;
+        }
+
+        function updateCurtain() {
+            curtainBar.style.left = `${currentPosition}%`;
+            topImage.style.clipPath = `inset(0 ${100 - currentPosition}% 0 0)`;
+        }
+
+        // Image upload handling
+        function handleImageUpload(input, imgElement) {
+            input.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        imgElement.src = e.target.result;
+                        validateImageDimensions();
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
+
+        function validateImageDimensions() {
+            const bottomImg = new Image();
+            const topImg = new Image();
+            
+            bottomImg.onload = function() {
+                topImg.onload = function() {
+                    if (bottomImg.width !== topImg.width || bottomImg.height !== topImg.height) {
+                        errorMessage.style.display = 'block';
+                        errorMessage.textContent = 'Error: Images must have the same dimensions';
+                        bottomImage.src = 'https://via.placeholder.com/600x400?text=Bottom+Image';
+                        topImage.src = 'https://via.placeholder.com/600x400?text=Top+Image';
+                    } else {
+                        errorMessage.style.display = 'none';
+                    }
+                };
+                topImg.src = topImage.src;
+            };
+            bottomImg.src = bottomImage.src;
+        }
+
+        handleImageUpload(bottomImageInput, bottomImage);
+        handleImageUpload(topImageInput, topImage);
+    </script>
+</body>
+</html>
